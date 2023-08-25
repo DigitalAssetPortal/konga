@@ -12,7 +12,7 @@ var KongConsumersController = {
 
     // Fetch all acls of the specified consumer
     Kong.listAllCb(req, '/consumers/' + consumerId + '/acls', function (err, _acls) {
-      if (err) return res.negotiate(err);
+      if (err) return res.serverError(err);
 
       // Make an array of group names
       var consumerGroups = _.map(_acls.data, function (item) {
@@ -21,7 +21,7 @@ var KongConsumersController = {
 
       // Fetch all apis
       Kong.listAllCb(req, '/apis', function (err, data) {
-        if (err) return res.negotiate(err);
+        if (err) return res.serverError(err);
 
         var apis = data.data;
 
@@ -40,7 +40,7 @@ var KongConsumersController = {
 
         // Foreach api, fetch it's assigned plugins
         async.series(apiPluginsFns, function (err, data) {
-          if (err) return res.negotiate(err);
+          if (err) return res.serverError(err);
 
           data.forEach(function (plugins, index) {
 
@@ -66,7 +66,7 @@ var KongConsumersController = {
 
           // Gather apis with access control restrictions whitelisting at least one of the consumer's groups.
           var whitelisted = _.filter(apis, function (api) {
-            return api.acl && _.intersection(api.acl.config.whitelist, consumerGroups).length > 0;
+            return api.acl && _.intersection(api.acl.config.allow, consumerGroups).length > 0;
           });
 
 
@@ -189,7 +189,7 @@ var KongConsumersController = {
 
       // Gather services with access control restrictions whitelisting at least one of the consumer's groups.
       let whitelisted = _.filter(services,function (service) {
-        return service.acl && _.intersection(service.acl.config.whitelist,consumerGroups).length > 0;
+        return service.acl && _.intersection(service.acl.config.allow,consumerGroups).length > 0;
       });
       sails.log("***********************************************")
       sails.log("KongConsumersController:services:whitelisted", _.map(whitelisted, item => item.name))
@@ -200,7 +200,7 @@ var KongConsumersController = {
       // & access control restrictions whitelisting at least one of the consumer's groups.
       let whitelistedNoAuth = _.filter(services,function (service) {
         return service.acl
-          && _.intersection(service.acl.config.whitelist,consumerGroups).length > 0
+          && _.intersection(service.acl.config.allow,consumerGroups).length > 0
           && (!service.auths || !service.auths.length);
       });
       sails.log("***********************************************")
@@ -236,8 +236,8 @@ var KongConsumersController = {
         total : filtered.length,
         data  : filtered
       });
-    }catch (e) {
-      return res.negotiate(e);
+    }catch (err) {
+      return res.serverError(err);
     }
 
   },
@@ -320,7 +320,7 @@ var KongConsumersController = {
 
       // Foreach route, fetch it's assigned plugins
       async.series(routePluginsFns,function (err,data) {
-        if(err) return res.negotiate(err);
+        if(err) return res.serverError(err);
 
         data.forEach(function(plugins,index){
 
@@ -356,7 +356,7 @@ var KongConsumersController = {
 
         // Gather apis with access control restrictions whitelisting at least one of the consumer's groups.
         let whitelisted = _.filter(routes,function (route) {
-          return route.acl && _.intersection(route.acl.config.whitelist,consumerGroups).length > 0;
+          return route.acl && _.intersection(route.acl.config.allow,consumerGroups).length > 0;
         });
 
         let eligible = matchingAuths.length && whitelisted.length ? _.intersection(matchingAuths, whitelisted) : matchingAuths.concat(whitelisted);
@@ -366,8 +366,8 @@ var KongConsumersController = {
           data  : _.uniqBy(open.concat(eligible), 'id')
         });
       });
-    }catch(e) {
-      return res.negotiate(e);
+    }catch(err) {
+      return res.serverError(err);
     }
   }
 

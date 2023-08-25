@@ -56,8 +56,8 @@ module.exports = _.merge(_.cloneDeep(require('../base/Controller')), {
     authenticationPlugins = _.map(authenticationPlugins, item => item.name);
     sails.log("authenticationPlugins",authenticationPlugins);
 
-    let whiteListedGroups = routeAclPlugin ? routeAclPlugin.config.whitelist || [] : [];
-    let blackListedGroups = routeAclPlugin ? routeAclPlugin.config.blacklist || [] : [];
+    let whiteListedGroups = routeAclPlugin ? routeAclPlugin.config.allow || [] : [];
+    let blackListedGroups = routeAclPlugin ? routeAclPlugin.config.deny || [] : [];
 
     // ACL
     sails.log("whiteListedGroups",whiteListedGroups)
@@ -140,7 +140,7 @@ module.exports = _.merge(_.cloneDeep(require('../base/Controller')), {
 
     // Fetch all consumers
     KongService.listAllCb(req, `/consumers`, (err, consumers) => {
-      if (err) return res.negotiate(err);
+      if (err) return res.serverError(err);
       if(!consumers.data || !consumers.data.length) return res.json([]);
 
 
@@ -180,4 +180,3 @@ module.exports = _.merge(_.cloneDeep(require('../base/Controller')), {
   }
 
 });
-
