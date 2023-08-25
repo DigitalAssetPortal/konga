@@ -2,7 +2,7 @@ FROM node:16.13-alpine
 
 RUN apk upgrade --update \
     && apk add bash git ca-certificates \
-    && npm install -g bower
+    && npm install -g bower patch-package
 
 COPY package.json /app/package.json
 COPY package-lock.json /app/package-lock.json
