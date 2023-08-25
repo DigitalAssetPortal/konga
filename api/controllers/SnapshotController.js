@@ -56,15 +56,15 @@ module.exports = _.merge(_.cloneDeep(require('../base/Controller')), {
     sails.models.kongnode.findOne({
       id: req.param("node_id")
     }).exec(async (err, node) => {
-      if (err) return res.negotiate(err)
+      if (err) return res.serverError(err)
       if (!node) return res.badRequest({
         message: "Invalid Kong Node"
       })
       try {
         const snapshot = await SnapshotsService.snapshot(req.param('name'), node);
         return res.json(snapshot);
-      } catch (e) {
-        return res.negotiate(e)
+      } catch (err) {
+        return res.serverError(err)
       }
 
     });
@@ -76,7 +76,7 @@ module.exports = _.merge(_.cloneDeep(require('../base/Controller')), {
     sails.models.kongnode.findOne({
       id: req.param("node_id")
     }).exec(function (err, node) {
-      if (err) return res.negotiate(err)
+      if (err) return res.serverError(err)
       if (!node) return res.badRequest({
         message: "Invalid Kong Node"
       })
@@ -100,7 +100,7 @@ module.exports = _.merge(_.cloneDeep(require('../base/Controller')), {
     sails.models.snapshot.findOne({
       id: snaphsot_id
     }).exec(async (err, snapshot) => {
-      if (err) return res.negotiate(err)
+      if (err) return res.serverError(err)
       if (!snapshot) res.notFound({
         message: 'Snapshot not found'
       })
@@ -131,6 +131,7 @@ module.exports = _.merge(_.cloneDeep(require('../base/Controller')), {
                     if (consumer.credentials[key].length) {
                       await Promise.all(consumer.credentials[key].map(async (cred) => {
                         const singularKey = plural2singularMAP[key] || key;
+                        if (cred.ttl == null) cred = _.omit(cred, ["ttl"]) // fix key-auth plugin "bad argument to 'floor' (number expected" error
                         try {
                           await KongService.post(`/consumers/${consumer.id}/${singularKey}`, req.connection, _.omit(cred, ["id", "consumer"]));
                           responseData[key].imported++;
@@ -195,7 +196,7 @@ module.exports = _.merge(_.cloneDeep(require('../base/Controller')), {
 
               await Promise.all(snapshot.data[entity].map(async (item) => {
                 try {
-                  await KongService.put(`/${entity}/${item.id}`, req.connection, _.omit(item, ["id", "extras"]));
+                  await KongService.put(`/${entity}/${item.id}`, req.connection, _.omit(item, ["id", "extras", "run_on"]));
                   responseData[entity].imported++;
                 } catch (e) {
 
@@ -216,7 +217,7 @@ module.exports = _.merge(_.cloneDeep(require('../base/Controller')), {
         return res.json(responseData);
       } catch (err) {
         sails.log.error(err);
-        return res.negotiate(err);
+        return res.serverError(err);
       }
     });
   },
@@ -230,7 +231,7 @@ module.exports = _.merge(_.cloneDeep(require('../base/Controller')), {
   //   sails.models.snapshot.findOne({
   //     id: snaphsot_id
   //   }).exec(function (err, snapshot) {
-  //     if (err) return res.negotiate(err)
+  //     if (err) return res.serverError(err)
   //     if (!snapshot) res.notFound({
   //       message: 'Snapshot not found'
   //     })
@@ -412,7 +413,7 @@ module.exports = _.merge(_.cloneDeep(require('../base/Controller')), {
   //
   //
   //     async.series(fns, function (err, data) {
-  //       if (err) return res.negotiate(err)
+  //       if (err) return res.serverError(err)
   //       return res.ok(responseData);
   //     });
   //
@@ -642,21 +643,21 @@ module.exports = _.merge(_.cloneDeep(require('../base/Controller')), {
     sails.models.snapshot.findOne({
       id: id
     }).exec(function (err, data) {
-      if (err) return res.negotiate(err)
+      if (err) return res.serverError(err)
       if (!data) return res.notFound()
 
       var location = sails.config.paths.uploads + "snapshot_" + data.id + ".json";
 
       if (fs.existsSync(location)) {
         fileAdapter.read(location).on('error', function (err) {
-          return res.negotiate(err);
+          return res.serverError(err);
         }).pipe(res);
       } else {
         fs.writeFile(location, JSON.stringify(data), 'utf8',
           function (err, file) {
-            if (err) return res.negotiate(err)
+            if (err) return res.serverError(err)
             fileAdapter.read(location).on('error', function (err) {
-              return res.negotiate(err);
+              return res.serverError(err);
             }).pipe(res);
           });
       }
@@ -665,4 +666,3 @@ module.exports = _.merge(_.cloneDeep(require('../base/Controller')), {
   }
 
 });
-
